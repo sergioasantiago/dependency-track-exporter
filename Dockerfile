@@ -1,6 +1,27 @@
-FROM gcr.io/distroless/static:nonroot
+FROM golang:1.19-buster AS build
 
-COPY dependency-track-exporter /
+WORKDIR /app
 
-USER nonroot
+COPY go.mod ./
+
+COPY go.sum ./
+
+RUN go mod download
+
+COPY *.go ./
+
+COPY internal ./internal
+
+RUN go build -o /dependency-track-exporter
+
+FROM gcr.io/distroless/base-debian11:latest-amd64
+
+WORKDIR /
+
+COPY --from=build /dependency-track-exporter /dependency-track-exporter
+
+EXPOSE 9916
+
+USER nonroot:nonroot
+
 ENTRYPOINT ["/dependency-track-exporter"]
